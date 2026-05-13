@@ -277,7 +277,7 @@ export function ReciboPDF({
         {/* ── ENCABEZADO ── */}
         <View style={estilos.encabezado}>
           <View style={estilos.encabezadoIzquierda}>
-            <Image style={estilos.logoEmpresa} src={logoEmpresaSrc} alt="Logo corporativo TempoSoluciones" />
+            <Image style={estilos.logoEmpresa} src={logoEmpresaSrc} />
             <Text style={estilos.subtituloEmpresa}>
               Administración de Seguridad Social y Servicios
             </Text>
