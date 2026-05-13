@@ -4,14 +4,18 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft,
-  FileText,
+  CalendarDays,
   CheckCircle2,
-  XCircle,
+  CircleDollarSign,
   ExternalLink,
+  FileText,
+  Hash,
   Loader2,
+  ReceiptText,
+  UserCircle2,
+  Wallet,
+  XCircle,
 } from 'lucide-react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,9 +63,9 @@ function formatearPesos(valor: number): string {
 function FilaDato({ label, valor }: { label: string; valor?: string | null }) {
   if (!valor) return null
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-1 py-2">
-      <span className="text-sm text-gray-500 w-44 shrink-0">{label}</span>
-      <span className="text-sm text-gray-800 font-medium">{valor}</span>
+    <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+      <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-800">{valor}</p>
     </div>
   )
 }
@@ -123,79 +127,120 @@ export default function DetalleMovimientoPage() {
   const [anio, mes, dia] = movimiento.fecha.split('-')
   const fechaLegible = `${dia}/${mes}/${anio}`
 
+  const clasePremium = esIngreso
+    ? 'from-emerald-50 via-white to-emerald-100 border-emerald-200'
+    : 'from-rose-50 via-white to-rose-100 border-rose-200'
+
+  const claseValor = esIngreso ? 'text-emerald-700' : 'text-rose-700'
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 pb-10">
+      <Card className={`overflow-hidden border bg-gradient-to-br ${clasePremium}`}>
+        <CardContent className="p-0">
+          <div className="flex flex-col gap-4 p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/80 backdrop-blur"
+                onClick={() => router.push('/historial')}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al historial
+              </Button>
+              <Badge className={esIngreso ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}>
+                {esIngreso ? 'Movimiento de ingreso' : 'Movimiento de egreso'}
+              </Badge>
+            </div>
 
-      {/* Encabezado */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/historial')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Detalle del movimiento
-          </h1>
-          <p className="text-sm text-gray-400 font-mono">{movimiento.consecutivo}</p>
-        </div>
-      </div>
+            <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Detalle financiero</p>
+                <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Detalle del movimiento</h1>
+                <p className="text-sm text-slate-600">Consulta toda la información operativa, soportes y estado del recibo del movimiento.</p>
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <Badge variant="outline" className="border-slate-300 bg-white/80 text-slate-700">
+                    <Hash className="mr-1 h-3.5 w-3.5" />
+                    {movimiento.consecutivo}
+                  </Badge>
+                  <Badge variant="outline" className="border-slate-300 bg-white/80 text-slate-700">
+                    <CalendarDays className="mr-1 h-3.5 w-3.5" />
+                    {fechaLegible}
+                  </Badge>
+                </div>
+              </div>
 
-      {/* Badge tipo + valor */}
-      <Card className={esIngreso ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
-        <CardContent className="flex items-center justify-between pt-5 pb-4">
-          <div className="space-y-1">
-            <Badge
-              className={esIngreso
-                ? 'bg-green-600 text-white'
-                : 'bg-red-600 text-white'}
-            >
-              {esIngreso ? '↓ Ingreso' : '↑ Egreso'}
-            </Badge>
-            <p className="text-xs text-gray-500">{fechaLegible}</p>
+              <div className="rounded-2xl border border-white/70 bg-white/90 px-4 py-3 shadow-sm">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Consecutivo</p>
+                <p className="font-mono text-sm font-semibold text-slate-800">{movimiento.consecutivo}</p>
+              </div>
+            </div>
           </div>
-          <p className={`text-2xl font-bold ${esIngreso ? 'text-green-700' : 'text-red-700'}`}>
-            {formatearPesos(Number(movimiento.valor))}
-          </p>
         </CardContent>
       </Card>
 
-      {/* Datos del movimiento */}
+      <Card className={`border-2 ${esIngreso ? 'border-emerald-200 bg-emerald-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
+        <CardContent className="space-y-5 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <Badge className={esIngreso ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}>
+                {esIngreso ? '↓ Ingreso' : '↑ Egreso'}
+              </Badge>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Valor del movimiento</p>
+              <p className={`text-3xl font-extrabold sm:text-4xl ${claseValor}`}>{formatearPesos(Number(movimiento.valor))}</p>
+            </div>
+            <div className="grid gap-2 text-sm text-slate-600 sm:text-right">
+              <p className="inline-flex items-center gap-2 sm:justify-end">
+                <CalendarDays className="h-4 w-4" /> Fecha: {fechaLegible}
+              </p>
+              <p className="inline-flex items-center gap-2 sm:justify-end">
+                <CircleDollarSign className="h-4 w-4" />
+                Estado: <span className="font-semibold text-slate-800">Registrado</span>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Información del movimiento</CardTitle>
+        <CardHeader>
+          <CardTitle className="text-base">Información del movimiento</CardTitle>
         </CardHeader>
-        <CardContent className="divide-y divide-gray-100">
-          <FilaDato label="Concepto"     valor={movimiento.concepto} />
+        <CardContent className="grid gap-3 sm:grid-cols-2">
+          <FilaDato label="Concepto" valor={movimiento.concepto} />
           <FilaDato label="Medio de pago" valor={movimiento.medio_pago} />
-          <FilaDato label="Fecha"        valor={fechaLegible} />
-          <FilaDato label="Consecutivo"  valor={movimiento.consecutivo} />
+          <FilaDato label="Fecha" valor={fechaLegible} />
+          <FilaDato label="Consecutivo" valor={movimiento.consecutivo} />
           {movimiento.notas && <FilaDato label="Notas" valor={movimiento.notas} />}
         </CardContent>
       </Card>
 
-      {/* Datos del cliente (ingresos) */}
       {esIngreso && movimiento.clientes && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Cliente / Afiliado</CardTitle>
+        <Card className="border-emerald-200 bg-emerald-50/40">
+          <CardHeader>
+            <CardTitle className="inline-flex items-center gap-2 text-base text-emerald-800">
+              <UserCircle2 className="h-5 w-5" /> Cliente / Afiliado
+            </CardTitle>
           </CardHeader>
-          <CardContent className="divide-y divide-gray-100">
+          <CardContent className="grid gap-3 sm:grid-cols-2">
             <FilaDato label="Nombre" valor={movimiento.clientes.nombre} />
             <FilaDato
               label="Documento"
               valor={`${movimiento.clientes.tipo_documento} ${movimiento.clientes.numero_documento}`}
             />
             <FilaDato label="Tipo de afiliación" valor={movimiento.clientes.tipo_afiliacion} />
-            <FilaDato label="Correo"    valor={movimiento.clientes.correo} />
-            <FilaDato label="WhatsApp"  valor={movimiento.clientes.whatsapp} />
+            <FilaDato label="Correo" valor={movimiento.clientes.correo} />
+            <FilaDato label="WhatsApp" valor={movimiento.clientes.whatsapp} />
           </CardContent>
         </Card>
       )}
 
-      {/* Datos del beneficiario (egresos) */}
       {!esIngreso && movimiento.beneficiario && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Beneficiario del pago</CardTitle>
+        <Card className="border-rose-200 bg-rose-50/40">
+          <CardHeader>
+            <CardTitle className="inline-flex items-center gap-2 text-base text-rose-800">
+              <UserCircle2 className="h-5 w-5" /> Beneficiario del pago
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <FilaDato label="Nombre / Entidad" valor={movimiento.beneficiario} />
@@ -203,68 +248,78 @@ export default function DetalleMovimientoPage() {
         </Card>
       )}
 
-      {/* Soporte adjunto */}
       {movimiento.soporte_url && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Soporte / Comprobante adjunto</CardTitle>
+        <Card className="border-sky-200 bg-sky-50/40">
+          <CardHeader>
+            <CardTitle className="inline-flex items-center gap-2 text-base text-sky-800">
+              <FileText className="h-5 w-5" /> Soporte / Comprobante adjunto
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Button
-              variant="outline"
-              className="text-blue-600 border-blue-300"
+              className="w-full bg-sky-600 text-white hover:bg-sky-700 sm:w-auto"
               onClick={() => window.open(movimiento.soporte_url!, '_blank')}
             >
-              <FileText className="mr-2 h-4 w-4" />
               Ver soporte adjunto
-              <ExternalLink className="ml-2 h-3 w-3" />
+              <ExternalLink className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Estado del recibo y acciones (F4-03 y F4-04) */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Recibo PDF</CardTitle>
+      <Card className="border-violet-200">
+        <CardHeader>
+          <CardTitle className="inline-flex items-center gap-2 text-base">
+            <ReceiptText className="h-5 w-5 text-violet-600" /> Recibo PDF
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-
-          {/* Estado del recibo */}
-          <div className="flex gap-6">
-            <div className="flex items-center gap-2">
-              {recibo?.enviado_email ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : (
-                <XCircle className="h-4 w-4 text-gray-300" />
-              )}
-              <span className="text-sm text-gray-600">Enviado por correo</span>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">Correo</p>
+              <div className="flex items-center gap-2">
+                {recibo?.enviado_email ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-slate-300" />
+                )}
+                <span className="text-sm text-slate-700">Enviado por correo</span>
+                <Badge variant="outline" className="ml-auto">
+                  {recibo?.enviado_email ? 'Enviado' : 'Pendiente'}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {recibo?.enviado_whatsapp ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : (
-                <XCircle className="h-4 w-4 text-gray-300" />
-              )}
-              <span className="text-sm text-gray-600">Enviado por WhatsApp</span>
+
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">WhatsApp</p>
+              <div className="flex items-center gap-2">
+                {recibo?.enviado_whatsapp ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-slate-300" />
+                )}
+                <span className="text-sm text-slate-700">Enviado por WhatsApp</span>
+                <Badge variant="outline" className="ml-auto">
+                  {recibo?.enviado_whatsapp ? 'Enviado' : 'Pendiente'}
+                </Badge>
+              </div>
             </div>
           </div>
 
           <Separator />
 
-          {/* Botón ver/generar recibo */}
-          <BotonRecibo
-            movimientoId={movimiento.id}
-            consecutivo={movimiento.consecutivo}
-          />
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
+            <p className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-violet-800">
+              <Wallet className="h-4 w-4" /> Generación y consulta del recibo
+            </p>
+            <BotonRecibo movimientoId={movimiento.id} consecutivo={movimiento.consecutivo} />
+          </div>
 
-          {/* Nota sobre envío (Fase 3 pendiente) */}
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-slate-500">
             El envío automático por correo y WhatsApp se habilitará en la Fase 3.
           </p>
         </CardContent>
       </Card>
-
     </div>
   )
 }
