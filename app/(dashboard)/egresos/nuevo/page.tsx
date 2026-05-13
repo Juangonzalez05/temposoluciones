@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { BotonRecibo } from '@/components/BotonRecibo'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,6 +8,7 @@ import { z } from 'zod'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
+  ArrowLeft,
   CalendarIcon,
   Loader2,
   CheckCircle2,
@@ -16,14 +16,21 @@ import {
   FileText,
   X,
   Image as ImageIcon,
+  Building2,
+  DollarSign,
+  FileCheck,
+  ChevronRight,
+  Receipt,
+  ClipboardList,
 } from 'lucide-react'
-
+import { Progress } from '@/components/ui/progress'
+import { subirSoporte, TIPOS_PERMITIDOS, TAMANO_MAXIMO } from '@/lib/utils/storage'
+import { BotonRecibo } from '@/components/BotonRecibo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Progress } from '@/components/ui/progress'
 import {
   Form,
   FormControl,
@@ -40,18 +47,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { subirSoporte, TIPOS_PERMITIDOS, TAMANO_MAXIMO } from '@/lib/utils/storage'
 
-// ── Conceptos predefinidos para egresos ──────────────────────
+// ── Conceptos de egreso ───────────────────────────────────────
 const CONCEPTOS_EGRESO = [
   'Pago nómina',
   'Pago seguridad social empleados',
@@ -65,29 +65,24 @@ const CONCEPTOS_EGRESO = [
   'Otro',
 ]
 
-// ── Medios de pago ───────────────────────────────────────────
+// ── Medios de pago ────────────────────────────────────────────
 const MEDIOS_PAGO = [
-  { value: 'Efectivo',      label: '💵 Efectivo' },
-  { value: 'Transferencia', label: '🏦 Transferencia bancaria' },
-  { value: 'Nequi',         label: '📱 Nequi' },
-  { value: 'Daviplata',     label: '📱 Daviplata' },
+  { value: 'Efectivo',      label: 'Efectivo',              icon: '💵' },
+  { value: 'Transferencia', label: 'Transferencia bancaria', icon: '🏦' },
+  { value: 'Nequi',         label: 'Nequi',                 icon: '📱' },
+  { value: 'Daviplata',     label: 'Daviplata',             icon: '📱' },
 ]
 
-// ── Esquema de validación — Zod v4 ───────────────────────────
-// IMPORTANTE: En Zod v4 se usa `error` en lugar de
-// `invalid_type_error` o `required_error` (eliminados en v4)
+// ── Zod schema — v4 ──────────────────────────────────────────
 const egresoFormSchema = z.object({
   beneficiario: z
     .string({ error: 'El beneficiario es requerido' })
     .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .max(150, 'El nombre no puede superar 150 caracteres'),
-
+    .max(150, 'Máximo 150 caracteres'),
   concepto: z
     .string({ error: 'El concepto es requerido' })
     .min(1, 'Selecciona un concepto'),
-
   concepto_personalizado: z.string().optional(),
-
   valor: z
     .string({ error: 'El valor es requerido' })
     .min(1, 'El valor es requerido')
@@ -99,34 +94,116 @@ const egresoFormSchema = z.object({
       (val) => Number(val.replace(/\./g, '')) > 0,
       { error: 'El valor debe ser mayor a cero' }
     ),
-
   medio_pago: z.enum(
     ['Efectivo', 'Transferencia', 'Nequi', 'Daviplata'],
     { error: 'Selecciona el medio de pago' }
   ),
-
   fecha: z.date({ error: 'La fecha es requerida' }),
-
-  notas: z
-    .string()
-    .max(500, 'Máximo 500 caracteres')
-    .optional(),
+  notas: z.string().max(500, 'Máximo 500 caracteres').optional(),
 })
 
 type EgresoFormValues = z.infer<typeof egresoFormSchema>
 
-// ── Formatear pesos colombianos ───────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 function formatearPesos(valor: string): string {
   const soloNumeros = valor.replace(/\D/g, '')
   if (!soloNumeros) return ''
   return Number(soloNumeros).toLocaleString('es-CO')
 }
 
-// ── Formatear tamaño de archivo ───────────────────────────────
 function formatearTamano(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+// ── Componentes reutilizables ─────────────────────────────────
+function PasoHeader({
+  numero,
+  titulo,
+  descripcion,
+  icono: Icono,
+  completado,
+}: {
+  numero: number
+  titulo: string
+  descripcion: string
+  icono: React.ElementType
+  completado?: boolean
+}) {
+  return (
+    <div className="flex items-start gap-4 mb-5">
+      <div
+        className={cn(
+          'flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-colors',
+          completado
+            ? 'bg-orange-500 text-white'
+            : 'bg-orange-50 text-orange-700 border-2 border-orange-200'
+        )}
+      >
+        {completado ? <CheckCircle2 className="h-5 w-5" /> : <Icono className="h-5 w-5" />}
+      </div>
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Paso {numero}
+          </span>
+          {completado && (
+            <Badge className="bg-orange-100 text-orange-700 text-xs px-2 py-0 h-5">
+              Completado
+            </Badge>
+          )}
+        </div>
+        <h3 className="text-base font-semibold text-gray-900 leading-tight">{titulo}</h3>
+        <p className="text-sm text-gray-500 mt-0.5">{descripcion}</p>
+      </div>
+    </div>
+  )
+}
+
+function SeccionFormulario({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        'bg-white rounded-2xl border border-gray-100 shadow-sm p-6',
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function BotonMedioPago({
+  medio,
+  seleccionado,
+  onClick,
+}: {
+  medio: { value: string; label: string; icon: string }
+  seleccionado: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 transition-all w-full text-center',
+        seleccionado
+          ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+      )}
+    >
+      <span className="text-2xl leading-none">{medio.icon}</span>
+      <span className="text-xs font-medium leading-tight">{medio.label}</span>
+    </button>
+  )
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -136,58 +213,54 @@ export default function NuevoEgresoPage() {
   const router = useRouter()
   const inputArchivoRef = useRef<HTMLInputElement>(null)
 
-  // Estados del formulario
+  const [enviando, setEnviando]               = useState(false)
+  const [exitoso, setExitoso]                 = useState(false)
+  const [errorServidor, setErrorServidor]     = useState<string | null>(null)
   const [conceptoPersonalizado, setConceptoPersonalizado] = useState(false)
-  const [enviando, setEnviando] = useState(false)
-  const [exitoso, setExitoso] = useState(false)
-  const [errorServidor, setErrorServidor] = useState<string | null>(null)
-  const [movimientoId, setMovimientoId] = useState<string | null>(null)
-  const [consecutivoGenerado, setConsecutivoGenerado] = useState<string>('')
-  // Estados del archivo adjunto
-  const [archivo, setArchivo] = useState<File | null>(null)
-  const [errorArchivo, setErrorArchivo] = useState<string | null>(null)
+  const [movimientoId, setMovimientoId]       = useState<string | null>(null)
+  const [consecutivoGenerado, setConsecutivoGenerado] = useState('')
+
+  const [archivo, setArchivo]               = useState<File | null>(null)
+  const [errorArchivo, setErrorArchivo]     = useState<string | null>(null)
   const [subiendoArchivo, setSubiendoArchivo] = useState(false)
   const [progresoSubida, setProgresoSubida] = useState(0)
-  const [arrastrando, setArrastrando] = useState(false)
+  const [arrastrando, setArrastrando]       = useState(false)
 
   const form = useForm<EgresoFormValues>({
     resolver: zodResolver(egresoFormSchema),
     defaultValues: {
-      beneficiario: '',
-      concepto: '',
+      beneficiario:           '',
+      concepto:               '',
       concepto_personalizado: '',
-      valor: '',
-      medio_pago: undefined,
-      fecha: new Date(),
-      notas: '',
+      valor:                  '',
+      medio_pago:             undefined,
+      fecha:                  new Date(),
+      notas:                  '',
     },
   })
 
-  // ── Manejo del archivo ────────────────────────────────────
+  const watchBeneficiario = form.watch('beneficiario')
+  const watchConcepto     = form.watch('concepto')
+  const watchValor        = form.watch('valor')
+  const watchMedioPago    = form.watch('medio_pago')
+
+  const paso1Completo = watchBeneficiario.length >= 2
+  const paso2Completo = !!watchConcepto && !!watchValor && !!watchMedioPago
+
+  // ── Manejo de archivo ─────────────────────────────────────
   function validarArchivo(file: File): string | null {
-    if (!TIPOS_PERMITIDOS.includes(file.type)) {
+    if (!TIPOS_PERMITIDOS.includes(file.type))
       return 'Tipo de archivo no permitido. Solo PDF, JPG, PNG o WEBP.'
-    }
-    if (file.size > TAMANO_MAXIMO) {
+    if (file.size > TAMANO_MAXIMO)
       return `El archivo es muy grande. Máximo ${formatearTamano(TAMANO_MAXIMO)}.`
-    }
     return null
   }
 
   function seleccionarArchivo(file: File) {
     const error = validarArchivo(file)
-    if (error) {
-      setErrorArchivo(error)
-      setArchivo(null)
-      return
-    }
+    if (error) { setErrorArchivo(error); setArchivo(null); return }
     setErrorArchivo(null)
     setArchivo(file)
-  }
-
-  function onCambioInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) seleccionarArchivo(file)
   }
 
   function onDrop(e: React.DragEvent<HTMLDivElement>) {
@@ -201,68 +274,50 @@ export default function NuevoEgresoPage() {
     setArchivo(null)
     setErrorArchivo(null)
     setProgresoSubida(0)
-    if (inputArchivoRef.current) {
-      inputArchivoRef.current.value = ''
-    }
+    if (inputArchivoRef.current) inputArchivoRef.current.value = ''
   }
 
-  function esImagen(tipo: string): boolean {
-    return tipo.startsWith('image/')
-  }
-
-  // ── Envío del formulario ──────────────────────────────────
+  // ── Envío ─────────────────────────────────────────────────
   async function onSubmit(values: EgresoFormValues) {
     setEnviando(true)
     setErrorServidor(null)
 
     let soporteUrl: string | null = null
 
-    // Si hay archivo adjunto, subirlo primero a Storage
     if (archivo) {
       setSubiendoArchivo(true)
-      setProgresoSubida(0)
-
-      const resultado = await subirSoporte(archivo, (progreso) => {
-        setProgresoSubida(progreso)
-      })
-
+      const resultado = await subirSoporte(archivo, setProgresoSubida)
       setSubiendoArchivo(false)
-
       if (resultado.error) {
         setErrorServidor(resultado.error)
         setEnviando(false)
         return
       }
-
       soporteUrl = resultado.url
     }
 
     try {
-      // Determinar concepto final
       const conceptoFinal =
         values.concepto === 'Otro' && values.concepto_personalizado
           ? values.concepto_personalizado
           : values.concepto
 
-      // Convertir valor formateado a número
-      const valorNumerico = Number(values.valor.replace(/\./g, ''))
-
       const payload = {
-        tipo: 'egreso',
-        cliente_id: null, // Los egresos no tienen cliente asociado
-        concepto: conceptoFinal,
-        valor: valorNumerico,
-        medio_pago: values.medio_pago,
-        fecha: format(values.fecha, 'yyyy-MM-dd'),
-        soporte_url: soporteUrl,
-        notas: values.notas || null,
+        tipo:         'egreso',
+        cliente_id:   null,
         beneficiario: values.beneficiario,
+        concepto:     conceptoFinal,
+        valor:        Number(values.valor.replace(/\./g, '')),
+        medio_pago:   values.medio_pago,
+        fecha:        format(values.fecha, 'yyyy-MM-dd'),
+        notas:        values.notas || null,
+        soporte_url:  soporteUrl,
       }
 
       const response = await fetch('/api/movimientos', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -275,15 +330,7 @@ export default function NuevoEgresoPage() {
       setMovimientoId(result.data.id)
       setConsecutivoGenerado(result.data.consecutivo)
       setExitoso(true)
-
-      // Redirigir al historial después de 2 segundos
-      // setTimeout(() => {
-      //   router.push('/historial')
-      //   router.refresh()
-      // }, 2000)
-
-    } catch (error) {
-      console.error('Error en onSubmit:', error)
+    } catch {
       setErrorServidor('Error de conexión. Verifica tu internet e intenta de nuevo.')
     } finally {
       setEnviando(false)
@@ -292,427 +339,445 @@ export default function NuevoEgresoPage() {
 
   // ── Pantalla de éxito ─────────────────────────────────────
   if (exitoso && movimientoId) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-md mx-auto text-center">
-      <CheckCircle2 className="h-16 w-16 text-green-500" />
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold text-gray-800">¡Egreso registrado!</h2>
-        <p className="text-gray-500 text-sm">
-          El movimiento <span className="font-mono font-bold">{consecutivoGenerado}</span> fue
-          guardado correctamente.
-          {archivo ? ' El soporte fue adjuntado.' : ''}
-        </p>
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8 text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-full bg-orange-50 border-4 border-orange-200 flex items-center justify-center">
+                <CheckCircle2 className="h-10 w-10 text-orange-500" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-gray-900">¡Egreso registrado!</h2>
+              <p className="text-gray-500 text-sm">
+                El pago fue guardado correctamente.
+              </p>
+              <div className="inline-flex items-center gap-2 bg-gray-50 rounded-lg px-4 py-2">
+                <Receipt className="h-4 w-4 text-gray-400" />
+                <span className="font-mono font-bold text-orange-600 text-sm">
+                  {consecutivoGenerado}
+                </span>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <BotonRecibo
+                movimientoId={movimientoId}
+                consecutivo={consecutivoGenerado}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  form.reset()
+                  setExitoso(false)
+                  setArchivo(null)
+                  setMovimientoId(null)
+                  setConsecutivoGenerado('')
+                  setErrorServidor(null)
+                }}
+                className="rounded-xl"
+              >
+                Otro egreso
+              </Button>
+              <Button
+                onClick={() => router.push('/historial')}
+                className="bg-orange-600 hover:bg-orange-700 rounded-xl"
+              >
+                Ver historial
+              </Button>
+            </div>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Ir al inicio
+            </button>
+          </div>
+        </div>
       </div>
-
-      <BotonRecibo
-        movimientoId={movimientoId}
-        consecutivo={consecutivoGenerado}
-      />
-
-      <div className="flex gap-3">
-        <Button
-          variant="outline"
-          onClick={() => {
-            form.reset()
-            setExitoso(false)
-            setArchivo(null)
-            setMovimientoId(null)
-            setConsecutivoGenerado('')
-            setErrorServidor(null)
-          }}
-          className="text-sm"
-        >
-          Registrar otro egreso
-        </Button>
-        <Button
-          onClick={() => router.push('/historial')}
-          className="bg-blue-700 hover:bg-blue-800 text-sm"
-        >
-          Ir al historial
-        </Button>
-      </div>
-    </div>
-  )
-}
+    )
+  }
 
   // ── Formulario principal ──────────────────────────────────
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
-      {/* Encabezado */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Registrar nuevo egreso</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Completa los datos del pago realizado y adjunta el soporte si lo tienes disponible.
-        </p>
-      </div>
+        {/* ── BARRA SUPERIOR ── */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="rounded-xl h-10 w-10 bg-white border border-gray-200 shadow-sm hover:bg-gray-50 flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-gray-900 truncate">Nuevo egreso</h1>
+            <p className="text-xs text-gray-400">
+              Registra el pago realizado y adjunta el soporte
+            </p>
+          </div>
+          {/* Indicador de progreso */}
+          <div className="flex-shrink-0 flex items-center gap-1.5">
+            <div className={cn('w-2 h-2 rounded-full transition-colors', paso1Completo ? 'bg-orange-500' : 'bg-gray-200')} />
+            <div className={cn('w-2 h-2 rounded-full transition-colors', paso2Completo ? 'bg-orange-500' : 'bg-gray-200')} />
+            <div className="w-2 h-2 rounded-full bg-gray-200" />
+          </div>
+        </div>
 
-      {/* Error del servidor */}
-      {errorServidor && (
-        <Alert variant="destructive">
-          <AlertDescription>{errorServidor}</AlertDescription>
-        </Alert>
-      )}
+        {errorServidor && (
+          <Alert variant="destructive" className="rounded-xl">
+            <AlertDescription>{errorServidor}</AlertDescription>
+          </Alert>
+        )}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
-          {/* ── SECCIÓN: Beneficiario ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Beneficiario del pago</CardTitle>
-              <CardDescription>
-                ¿A quién se le realizó el pago? (proveedor, persona, entidad)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            {/* ══ PASO 1: BENEFICIARIO ══ */}
+            <SeccionFormulario>
+              <PasoHeader
+                numero={1}
+                titulo="¿A quién se realizó el pago?"
+                descripcion="Nombre del proveedor, persona o entidad que recibió el dinero."
+                icono={Building2}
+                completado={paso1Completo}
+              />
               <FormField
                 control={form.control}
                 name="beneficiario"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Nombre del beneficiario <span className="text-red-500">*</span>
-                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Ej: Empresa de Acueducto, Juan Pérez, Proveedor XYZ..."
+                        className="rounded-xl h-11 border-2"
                         {...field}
                       />
                     </FormControl>
-                    <FormDescription>
+                    <FormDescription className="text-xs">
                       Puede ser una persona natural, empresa o entidad.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </SeccionFormulario>
 
-          {/* ── SECCIÓN: Datos del egreso ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Datos del egreso</CardTitle>
-              <CardDescription>Información del pago realizado</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-
-              {/* Concepto */}
-              <FormField
-                control={form.control}
-                name="concepto"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Concepto del egreso <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value)
-                        setConceptoPersonalizado(value === 'Otro')
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona el concepto del gasto" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CONCEPTOS_EGRESO.map((concepto) => (
-                          <SelectItem key={concepto} value={concepto}>
-                            {concepto}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* ══ PASO 2: DATOS DEL EGRESO ══ */}
+            <SeccionFormulario>
+              <PasoHeader
+                numero={2}
+                titulo="Datos del egreso"
+                descripcion="Completa el concepto, valor y el medio de pago utilizado."
+                icono={DollarSign}
+                completado={paso2Completo}
               />
 
-              {/* Concepto personalizado */}
-              {conceptoPersonalizado && (
+              <div className="space-y-5">
+                {/* Concepto */}
                 <FormField
                   control={form.control}
-                  name="concepto_personalizado"
+                  name="concepto"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Especifica el concepto <span className="text-red-500">*</span>
+                      <FormLabel className="text-sm font-semibold text-gray-700">
+                        Concepto <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={(v) => {
+                          field.onChange(v)
+                          setConceptoPersonalizado(v === 'Otro')
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="rounded-xl h-11">
+                            <SelectValue placeholder="¿Por qué concepto es el gasto?" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CONCEPTOS_EGRESO.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {conceptoPersonalizado && (
+                  <FormField
+                    control={form.control}
+                    name="concepto_personalizado"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-semibold text-gray-700">
+                          Describe el concepto <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Describe el motivo del gasto..."
+                            className="rounded-xl h-11"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Valor */}
+                <FormField
+                  control={form.control}
+                  name="valor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-gray-700">
+                        Valor pagado <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Describe el concepto del egreso..."
-                          {...field}
-                        />
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                            <span className="text-gray-400 font-semibold text-lg">$</span>
+                          </div>
+                          <Input
+                            placeholder="0"
+                            className="pl-8 pr-16 text-right font-mono text-xl h-14 rounded-xl border-2 focus:border-orange-500 transition-colors bg-red-50/30 font-bold text-gray-800"
+                            {...field}
+                            onChange={(e) => field.onChange(formatearPesos(e.target.value))}
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-md">
+                              COP
+                            </span>
+                          </div>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              {/* Valor */}
-              <FormField
-                control={form.control}
-                name="valor"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Valor <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
-                          $
-                        </span>
-                        <Input
-                          placeholder="0"
-                          className="pl-7 text-right font-mono text-lg"
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(formatearPesos(e.target.value))
-                          }}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                          COP
-                        </span>
-                      </div>
-                    </FormControl>
-                    <FormDescription>Valor en pesos colombianos</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Medio de pago */}
-              <FormField
-                control={form.control}
-                name="medio_pago"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Medio de pago <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="¿Cómo se realizó el pago?" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
+                {/* Medio de pago */}
+                <FormField
+                  control={form.control}
+                  name="medio_pago"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-gray-700">
+                        ¿Cómo se pagó? <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <div className="grid grid-cols-4 gap-2">
                         {MEDIOS_PAGO.map((medio) => (
-                          <SelectItem key={medio.value} value={medio.value}>
-                            {medio.label}
-                          </SelectItem>
+                          <BotonMedioPago
+                            key={medio.value}
+                            medio={medio}
+                            seleccionado={field.value === medio.value}
+                            onClick={() => field.onChange(medio.value)}
+                          />
                         ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Fecha */}
-              <FormField
-                control={form.control}
-                name="fecha"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>
-                      Fecha del pago <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value
-                              ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es })
-                              : 'Selecciona la fecha'}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date()}
-                          locale={es}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormDescription>
-                      Por defecto es hoy. Cámbiala si el pago fue en otra fecha.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* ── SECCIÓN: Soporte del egreso ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Soporte del egreso</CardTitle>
-              <CardDescription>
-                Adjunta la factura, recibo o comprobante del pago. Opcional pero recomendado.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-
-              {/* Zona de carga — si NO hay archivo seleccionado */}
-              {!archivo && (
-                <div
-                  className={cn(
-                    'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
-                    arrastrando
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  onClick={() => inputArchivoRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setArrastrando(true) }}
-                  onDragLeave={() => setArrastrando(false)}
-                  onDrop={onDrop}
-                >
-                  <UploadCloud className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-700">
-                    Arrastra el archivo aquí o{' '}
-                    <span className="text-blue-600 underline">haz clic para buscarlo</span>
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    PDF, JPG, PNG o WEBP · Máximo 5 MB
-                  </p>
-                </div>
-              )}
+                />
 
-              {/* Input oculto */}
-              <input
-                ref={inputArchivoRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                className="hidden"
-                onChange={onCambioInput}
+                {/* Fecha */}
+                <FormField
+                  control={form.control}
+                  name="fecha"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-gray-700">
+                        Fecha del pago <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal rounded-xl h-11 border-2',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
+                              {field.value
+                                ? format(field.value, "d 'de' MMMM 'de' yyyy", { locale: es })
+                                : 'Selecciona la fecha'}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-xl" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date > new Date()}
+                            locale={es}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </SeccionFormulario>
+
+            {/* ══ PASO 3: SOPORTE Y NOTAS ══ */}
+            <SeccionFormulario>
+              <PasoHeader
+                numero={3}
+                titulo="Soporte del pago y notas"
+                descripcion="Opcional — adjunta la factura, recibo o soporte del gasto."
+                icono={FileCheck}
               />
 
-              {/* Error de validación del archivo */}
-              {errorArchivo && (
-                <Alert variant="destructive">
-                  <AlertDescription>{errorArchivo}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Vista previa del archivo seleccionado */}
-              {archivo && (
-                <div className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    {esImagen(archivo.type) ? (
-                      <ImageIcon className="h-8 w-8 text-blue-500 flex-shrink-0" />
-                    ) : (
-                      <FileText className="h-8 w-8 text-red-500 flex-shrink-0" />
+              <div className="space-y-5">
+                {!archivo ? (
+                  <div
+                    className={cn(
+                      'border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer',
+                      arrastrando
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/20'
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {archivo.name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {formatearTamano(archivo.size)} · {archivo.type}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={eliminarArchivo}
-                      className="flex-shrink-0 text-gray-400 hover:text-red-500"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    onClick={() => inputArchivoRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setArrastrando(true) }}
+                    onDragLeave={() => setArrastrando(false)}
+                    onDrop={onDrop}
+                  >
+                    <UploadCloud className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-600">
+                      Arrastra el soporte aquí o{' '}
+                      <span className="text-orange-600">haz clic para buscar</span>
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      PDF, JPG, PNG o WEBP · Máximo 5 MB
+                    </p>
                   </div>
-
-                  {/* Barra de progreso (visible mientras se sube) */}
-                  {subiendoArchivo && (
-                    <div className="mt-3 space-y-1">
-                      <Progress value={progresoSubida} className="h-2" />
-                      <p className="text-xs text-gray-400 text-right">
-                        Subiendo archivo... {progresoSubida}%
-                      </p>
+                ) : (
+                  <div className="border-2 border-orange-200 bg-orange-50/30 rounded-xl p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-white rounded-xl border border-gray-200 flex items-center justify-center">
+                        {archivo.type.startsWith('image/')
+                          ? <ImageIcon className="h-5 w-5 text-blue-500" />
+                          : <FileText className="h-5 w-5 text-red-500" />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {archivo.name}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {formatearTamano(archivo.size)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={eliminarArchivo}
+                        className="flex-shrink-0 h-8 w-8 text-gray-400 hover:text-red-500 rounded-lg"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </div>
-              )}
-
-            </CardContent>
-          </Card>
-
-          {/* ── SECCIÓN: Notas ── */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Notas adicionales</CardTitle>
-              <CardDescription>
-                Opcional — observaciones sobre este egreso
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="notas"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Ej: Pago correspondiente al mes de mayo. Factura N° 1234..."
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>Máximo 500 caracteres.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
+                    {subiendoArchivo && (
+                      <div className="mt-3 space-y-1">
+                        <Progress value={progresoSubida} className="h-1.5" />
+                        <p className="text-xs text-gray-400 text-right">{progresoSubida}%</p>
+                      </div>
+                    )}
+                  </div>
                 )}
-              />
-            </CardContent>
-          </Card>
 
-          {/* ── Botones ── */}
-          <div className="flex gap-3 justify-end pb-8">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={enviando}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              className="bg-red-600 hover:bg-red-700 min-w-[160px]"
-              disabled={enviando || subiendoArchivo}
-            >
-              {enviando ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {subiendoArchivo ? 'Subiendo archivo...' : 'Guardando...'}
-                </>
-              ) : (
-                '💾 Registrar egreso'
-              )}
-            </Button>
-          </div>
+                <input
+                  ref={inputArchivoRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) seleccionarArchivo(file)
+                  }}
+                />
 
-        </form>
-      </Form>
+                {errorArchivo && (
+                  <Alert variant="destructive" className="rounded-xl">
+                    <AlertDescription className="text-sm">{errorArchivo}</AlertDescription>
+                  </Alert>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="notas"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-semibold text-gray-700">
+                        Notas adicionales
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Observaciones opcionales sobre este egreso..."
+                          className="rounded-xl resize-none border-2"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs text-right">
+                        {(field.value ?? '').length}/500 caracteres
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </SeccionFormulario>
+
+            {/* ══ BOTONES DE ACCIÓN ══ */}
+            <div className="flex flex-col sm:flex-row gap-3 pb-10">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                disabled={enviando}
+                className="sm:w-auto w-full rounded-xl h-12 border-2 font-semibold"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={enviando || subiendoArchivo}
+                className="flex-1 bg-orange-600 hover:bg-orange-700 rounded-xl h-12 font-semibold text-base shadow-sm shadow-orange-200"
+              >
+                {enviando ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    {subiendoArchivo ? 'Subiendo soporte...' : 'Guardando egreso...'}
+                  </>
+                ) : (
+                  <>
+                    <ClipboardList className="mr-2 h-5 w-5" />
+                    Registrar egreso
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+
+          </form>
+        </Form>
+      </div>
     </div>
   )
 }

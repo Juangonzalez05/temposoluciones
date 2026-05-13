@@ -131,6 +131,7 @@ export async function GET(request: NextRequest) {
     const pagina    = parseInt(searchParams.get('pagina') ?? '1')
     const porPagina = parseInt(searchParams.get('porPagina') ?? '20')
     const offset    = (pagina - 1) * porPagina
+    const clienteId = searchParams.get('cliente_id')
 
     // Construir la query base con JOIN a clientes
     let query = supabase
@@ -153,6 +154,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .range(offset, offset + porPagina - 1)
 
+    if (clienteId) query = query.eq('cliente_id', clienteId)
     if (tipo)     query = query.eq('tipo', tipo)
     if (desde)    query = query.gte('fecha', desde)
     if (hasta)    query = query.lte('fecha', hasta)
