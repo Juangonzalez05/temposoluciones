@@ -132,7 +132,7 @@ export default function HistorialPage() {
 
         <div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3 sm:space-y-4">
-            <Button variant="ghost" onClick={() => router.back()} className="w-fit -ml-2 h-8 px-2 text-sm sm:h-9">
+            <Button variant="ghost" onClick={() => router.push('/dashboard')} className="w-fit -ml-2 h-8 px-2 text-sm sm:h-9">
               <ArrowLeft className="h-3.5 w-3.5 mr-1.5 sm:h-4 sm:w-4 sm:mr-2" />
               Volver
             </Button>
