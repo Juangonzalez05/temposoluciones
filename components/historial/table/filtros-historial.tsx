@@ -67,16 +67,16 @@ export function FiltrosHistorialBar({
     filtros.busqueda || filtros.tipo !== 'todos' || filtros.desde || filtros.hasta
 
   return (
-    <div className="flex flex-wrap gap-3 items-center">
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
 
       {/* Búsqueda por texto */}
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className="relative w-full sm:flex-1 sm:min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 sm:h-4 sm:w-4" />
         <Input
           placeholder="Buscar por concepto, consecutivo..."
           value={filtros.busqueda}
           onChange={(e) => actualizarFiltro('busqueda', e.target.value)}
-          className="pl-9 h-9"
+          className="pl-8 h-9 text-sm sm:pl-9"
           disabled={cargando}
         />
       </div>
@@ -87,7 +87,7 @@ export function FiltrosHistorialBar({
         onValueChange={(v) => actualizarFiltro('tipo', v as FiltrosHistorial['tipo'])}
         disabled={cargando}
       >
-        <SelectTrigger className="h-9 w-[140px]">
+        <SelectTrigger className="h-9 w-full text-sm sm:w-[140px]">
           <SelectValue placeholder="Tipo" />
         </SelectTrigger>
         <SelectContent>
@@ -103,12 +103,12 @@ export function FiltrosHistorialBar({
           <Button
             variant="outline"
             className={cn(
-              'h-9 justify-start text-left font-normal min-w-[220px]',
+              'h-9 w-full justify-start text-left font-normal text-sm sm:min-w-[220px]',
               !rango && 'text-muted-foreground'
             )}
             disabled={cargando}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             {rango?.from ? (
               rango.to ? (
                 <>
@@ -141,7 +141,7 @@ export function FiltrosHistorialBar({
           variant="ghost"
           size="sm"
           onClick={limpiarFiltros}
-          className="h-9 text-gray-500 hover:text-gray-800"
+          className="h-9 w-full text-sm text-gray-500 hover:text-gray-800 sm:w-auto"
           disabled={cargando}
         >
           <X className="h-4 w-4 mr-1" />
