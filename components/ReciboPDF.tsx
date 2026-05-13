@@ -4,7 +4,7 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
+  Image,
 } from '@react-pdf/renderer'
 
 // ── Datos que recibe el componente ────────────────────────────
@@ -65,18 +65,19 @@ const estilos = StyleSheet.create({
   encabezadoIzquierda: {
     flexDirection: 'column',
     gap: 3,
+    flex: 1,
   },
-  nombreEmpresa: {
-    fontSize: 22,
-    fontFamily: 'Helvetica-Bold',
-    color: COLORES.azul,
-    letterSpacing: 0.5,
+  logoEmpresa: {
+    width: 210,
+    height: 56,
+    marginBottom: 6,
+    objectFit: 'contain',
   },
   subtituloEmpresa: {
     fontSize: 9,
     color: COLORES.grisMedio,
   },
-  nitEmpresa: {
+  infoEmpresa: {
     fontSize: 9,
     color: COLORES.grisMedio,
   },
@@ -263,6 +264,7 @@ export function ReciboPDF({
   const esIngreso = tipo === 'ingreso'
   const colorTipo = esIngreso ? COLORES.verde : COLORES.rojo
   const labelTipo = esIngreso ? 'Recibo de Ingreso' : 'Comprobante de Egreso'
+  const logoEmpresaSrc = '/LOGO TEMPO.jpeg'
 
   return (
     <Document
@@ -275,13 +277,13 @@ export function ReciboPDF({
         {/* ── ENCABEZADO ── */}
         <View style={estilos.encabezado}>
           <View style={estilos.encabezadoIzquierda}>
-            <Text style={estilos.nombreEmpresa}>TEMPOSOLUCIONES</Text>
+            <Image style={estilos.logoEmpresa} src={logoEmpresaSrc} alt="Logo corporativo TempoSoluciones" />
             <Text style={estilos.subtituloEmpresa}>
               Administración de Seguridad Social y Servicios
             </Text>
-            <Text style={estilos.nitEmpresa}>NIT: 900.XXX.XXX-X</Text>
-            <Text style={estilos.nitEmpresa}>Tel: +57 300 000 0000</Text>
-            <Text style={estilos.nitEmpresa}>Medellín, Colombia</Text>
+            <Text style={estilos.infoEmpresa}>NIT: 900.XXX.XXX-X</Text>
+            <Text style={estilos.infoEmpresa}>Tel: +57 300 000 0000</Text>
+            <Text style={estilos.infoEmpresa}>Medellín, Colombia</Text>
           </View>
 
           <View style={estilos.encabezadoDerecha}>
