@@ -33,13 +33,13 @@ function TarjetaResumen({
 }) {
   return (
     <Card className="border-0 shadow-sm ring-1 ring-black/5 bg-white/95">
-      <CardContent className="flex items-center gap-4 pt-5 pb-4">
-        <div className={`p-2.5 rounded-xl ${color} shadow-sm`}>
-          <Icono className="h-5 w-5 text-white" />
+      <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:pt-5 sm:pb-4">
+        <div className={`p-2 rounded-xl ${color} shadow-sm sm:p-2.5`}>
+          <Icono className="h-4 w-4 text-white sm:h-5 sm:w-5" />
         </div>
-        <div>
-          <p className="text-xs text-muted-foreground font-medium">{titulo}</p>
-          <p className="text-lg font-bold text-foreground">{valor}</p>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground font-medium leading-tight">{titulo}</p>
+          <p className="text-base font-bold text-foreground break-words sm:text-lg">{valor}</p>
         </div>
       </CardContent>
     </Card>
@@ -124,31 +124,33 @@ export default function HistorialPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-3 py-4 space-y-5 sm:px-4 sm:py-6 md:px-10 md:py-8 md:space-y-8 lg:px-12">
       {/* Encabezado */}
-      <section className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-background via-blue-50/50 to-emerald-50/50 p-6 md:p-8 shadow-sm">
+      <section className="relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-background via-blue-50/50 to-emerald-50/50 p-4 shadow-sm sm:rounded-2xl sm:p-5 md:p-8">
         <div className="pointer-events-none absolute -top-10 -right-10 h-36 w-36 rounded-full bg-primary/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-12 -left-10 h-36 w-36 rounded-full bg-emerald-500/10 blur-2xl" />
 
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-4">
-            <Button variant="ghost" onClick={() => router.back()} className="w-fit -ml-2">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+        <div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3 sm:space-y-4">
+            <Button variant="ghost" onClick={() => router.back()} className="w-fit -ml-2 h-8 px-2 text-sm sm:h-9">
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5 sm:h-4 sm:w-4 sm:mr-2" />
               Volver
             </Button>
 
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5 sm:gap-3">
               <div className="hidden sm:flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <ReceiptText className="h-5 w-5" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Historial de movimientos</h1>
-                  <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-medium">
+                  <h1 className="text-xl leading-tight sm:text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+                    Historial de movimientos
+                  </h1>
+                  <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium sm:px-3 sm:py-1 sm:text-xs">
                     {total} registros
                   </Badge>
                 </div>
-                <p className="text-sm md:text-base text-muted-foreground max-w-2xl">
+                <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-2xl">
                   Consulta, analiza y filtra ingresos y egresos en una sola vista para tomar decisiones financieras más rápidas.
                 </p>
               </div>
@@ -156,19 +158,19 @@ export default function HistorialPage() {
           </div>
 
           <Card className="w-full max-w-xl border bg-background/80 backdrop-blur-sm shadow-sm">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-4 pt-4 sm:px-6 sm:pt-6">
               <CardTitle className="text-sm font-semibold">Acciones rápidas</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Button asChild className="w-full">
+            <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2 px-4 pb-4 sm:px-6 sm:pb-6">
+              <Button asChild className="w-full h-9 text-sm">
                 <Link href="/ingresos/nuevo">Nuevo ingreso</Link>
               </Button>
-              <Button asChild variant="destructive" className="w-full">
+              <Button asChild variant="destructive" className="w-full h-9 text-sm">
                 <Link href="/egresos/nuevo">Nuevo egreso</Link>
               </Button>
-              <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="w-full h-9 text-sm">
                 <Link href="/reportes">
-                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <BarChart3 className="h-3.5 w-3.5 mr-1.5 sm:h-4 sm:w-4 sm:mr-2" />
                   Ver reportes
                 </Link>
               </Button>
@@ -178,7 +180,7 @@ export default function HistorialPage() {
       </section>
 
       {/* Tarjetas de resumen */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
         <TarjetaResumen
           titulo="Total ingresos (página actual)"
           valor={formatearPesos(totalIngresos)}
