@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
   Image,
+
 } from '@react-pdf/renderer'
 // Agregar junto a los otros imports al inicio del archivo:
 import { LOGO_BASE64 } from '@/lib/utils/logo-base64'
@@ -83,7 +84,7 @@ const estilos = StyleSheet.create({
     fontSize: 9,
     color:    COLORES.grisMedio,
   },
-  nitEmpresa: {
+  infoEmpresa: {
     fontSize: 9,
     color:    COLORES.grisMedio,
   },
@@ -305,9 +306,9 @@ export function ReciboPDF({
             <Text style={estilos.subtituloEmpresa}>
               Administración de Seguridad Social y Servicios
             </Text>
-            <Text style={estilos.nitEmpresa}>NIT: 901013892-8</Text>
-            <Text style={estilos.nitEmpresa}>Tel: +57 311 794 7842</Text>
-            <Text style={estilos.nitEmpresa}>Bello, Colombia</Text>
+            <Text style={estilos.infoEmpresa}>NIT: 901013892-8</Text>
+            <Text style={estilos.infoEmpresa}>Tel: +57 311 794 7842</Text>
+            <Text style={estilos.infoEmpresa}>Bello, Colombia</Text>
           </View>
 
           {/* LADO DERECHO: tipo de recibo + consecutivo + fecha */}
