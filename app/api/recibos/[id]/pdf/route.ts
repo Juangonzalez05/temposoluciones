@@ -125,7 +125,12 @@ export async function GET(
       medioPago: movimiento.medio_pago,
       notas: movimiento.notas,
       beneficiario: movimiento.beneficiario,
-      razonSocial,
+      razonSocialNombre: razonSocial.nombre,
+      razonSocialNit: razonSocial.nit,
+      razonSocialLogo: razonSocial.logo_base64,
+      razonSocialLogoFormato: razonSocial.logo_formato,
+      razonSocialTelefono: razonSocial.telefono,
+      razonSocialCorreo: razonSocial.correo,
     }
 
     const elemento = React.createElement(ReciboPDF, props)

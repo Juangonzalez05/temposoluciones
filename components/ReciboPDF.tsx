@@ -22,8 +22,11 @@ export interface ReciboPDFProps {
   razonSocialNit: string
   razonSocialLogo?: string
   razonSocialLogoFormato?: string
+
+
   razonSocialTelefono?: string | null
   razonSocialCorreo?: string | null
+
 }
 
 const COLORES = {
