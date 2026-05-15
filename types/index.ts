@@ -62,6 +62,33 @@ export interface IngresoFormData {
   notas?: string
 }
 
+// ── Razón Social ─────────────────────────────────────────────
+export interface RazonSocial {
+  id: string
+  nombre: string
+  nombre_corto: string | null
+  nit: string
+  tipo: string
+  direccion: string | null
+  telefono: string | null
+  correo: string | null
+  logo_base64: string | null
+  logo_formato: 'jpeg' | 'png' | null
+  activa: boolean
+  created_at: string
+}
+
+export interface RazonSocialFormData {
+  nombre: string
+  nombre_corto: string
+  nit: string
+  direccion: string
+  telefono: string
+  correo: string
+  logo_base64: string | null
+  logo_formato: 'jpeg' | 'png' | null
+}
+
 // ── Respuesta estándar de la API ─────────────────────────────
 export interface ApiResponse<T = unknown> {
   data?: T

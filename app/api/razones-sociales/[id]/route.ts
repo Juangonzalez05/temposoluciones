@@ -33,7 +33,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('razones_sociales')
       .select(
-        'id, nombre, nombre_corto, nit, tipo, direccion, telefono, correo, logo_base64, logo_formato, actua, created_at'
+        'id, nombre, nombre_corto, nit, tipo, direccion, telefono, correo, logo_base64, logo_formato, activa, created_at'
       )
       .eq('id', id)
       .single()
@@ -71,8 +71,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    // TODO: validar rol admin cuando módulo de roles esté implementado
-
     const body = await request.json()
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -87,7 +85,7 @@ export async function PATCH(
       'correo',
       'logo_base64',
       'logo_formato',
-      'actua',
+      'activa',       // ← corregido: era 'actua'
     ] as const
 
     const payload: Record<string, unknown> = {}
@@ -99,7 +97,6 @@ export async function PATCH(
           { status: 400 }
         )
       }
-
       payload[key] = body[key]
     }
 
@@ -121,9 +118,9 @@ export async function PATCH(
       )
     }
 
-    if (payload.actua !== undefined && typeof payload.actua !== 'boolean') {
+    if (payload.activa !== undefined && typeof payload.activa !== 'boolean') {
       return NextResponse.json(
-        { error: 'Payload inválido: actua debe ser boolean' },
+        { error: 'Payload inválido: activa debe ser boolean' },  // ← corregido
         { status: 400 }
       )
     }
@@ -133,8 +130,8 @@ export async function PATCH(
       .update(payload)
       .eq('id', id)
       .select(
-        'id, nombre, nombre_corto, nit, tipo, direccion, telefono, correo, logo_base64, logo_formato, actua, created_at'
-      )
+        'id, nombre, nombre_corto, nit, tipo, direccion, telefono, correo, logo_base64, logo_formato, activa, created_at'
+      )                                    // ← corregido: era 'actua'
       .single()
 
     if (error || !data) {

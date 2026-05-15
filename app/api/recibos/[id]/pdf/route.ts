@@ -83,7 +83,7 @@ export async function GET(
       .from('razones_sociales')
       .select('nombre,nit,telefono,correo,direccion,logo_base64,logo_formato')
       .eq('id', movimiento.razon_social_id)
-      .eq('actua', true)
+      .eq('activa', true)
       .maybeSingle()
 
     if (razonSocialError) {

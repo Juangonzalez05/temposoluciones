@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react'
+import { SelectorRazonSocial } from '@/components/SelectorRazonSocial'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ import type { DateRange } from 'react-day-picker'
 
 type TipoPeriodo = 'hoy' | 'semana' | 'mes' | 'mes_anterior' | 'personalizado'
 interface Resumen { totalIngresos:number; totalEgresos:number; saldoNeto:number; cantIngresos:number; cantEgresos:number; totalMovimientos:number; porMedioPago:Record<string,number> }
-interface MovimientoReporte { id:string; tipo:'ingreso'|'egreso'; consecutivo:string; concepto:string; valor:number; medio_pago:string; fecha:string; beneficiario:string|null; notas:string|null; clientes:{ nombre:string; tipo_documento:string; numero_documento:string }|null; recibos:{ pdf_url:string; enviado_email:boolean; enviado_whatsapp:boolean }[]|null }
+interface MovimientoReporte { id:string; tipo:'ingreso'|'egreso'; consecutivo:string; concepto:string; valor:number; medio_pago:string; fecha:string; beneficiario:string|null; notas:string|null; clientes:{ nombre:string; tipo_documento:string; numero_documento:string }|null; recibos:{ pdf_url:string; enviado_email:boolean; enviado_whatsapp:boolean }[]|null; razones_sociales:{ id:string; nombre:string; nombre_corto:string|null }|null }
 
 function formatearPesos(valor: number): string { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(valor) }
 function formatearFecha(fecha: string): string { const [anio, mes, dia] = fecha.split('-'); return `${dia}/${mes}/${anio}` }
@@ -67,6 +68,7 @@ export default function ReportesPage() {
   const router = useRouter()
   const [tipoPeriodo, setTipoPeriodo] = useState<TipoPeriodo>('mes')
   const [rangoPersonalizado, setRangoPersonalizado] = useState<DateRange | undefined>()
+  const [razonSocialId, setRazonSocialId] = useState<string | undefined>()
   const [cargando, setCargando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [resumen, setResumen] = useState<Resumen | null>(null)
@@ -87,6 +89,7 @@ export default function ReportesPage() {
     setCargando(true); setYaConsultado(true)
     try {
       const params = new URLSearchParams({ desde: rango.desde, hasta: rango.hasta })
+      if (razonSocialId) params.set('razon_social_id', razonSocialId)
       const response = await fetch(`/api/reportes?${params}`)
       const result = await response.json()
       if (response.ok) { setResumen(result.resumen); setMovimientos(result.movimientos); setPeriodoActual(result.periodo) }
@@ -97,7 +100,7 @@ export default function ReportesPage() {
     if (!movimientos.length || !periodoActual) return
     setExportando(true)
     try {
-      const datos = movimientos.map(m => ({ tipo: m.tipo, consecutivo: m.consecutivo, fecha: m.fecha, entidad: m.tipo === 'ingreso' ? (m.clientes?.nombre ?? '—') : (m.beneficiario ?? '—'), concepto: m.concepto, valor: Number(m.valor), medio_pago: m.medio_pago, notas: m.notas }))
+      const datos = movimientos.map(m => ({ tipo: m.tipo, consecutivo: m.consecutivo, fecha: m.fecha, entidad: m.tipo === 'ingreso' ? (m.clientes?.nombre ?? '—') : (m.beneficiario ?? '—'), concepto: m.concepto, valor: Number(m.valor), medio_pago: m.medio_pago, notas: m.notas, razon_social: m.razones_sociales?.nombre_corto ?? m.razones_sociales?.nombre ?? '—' }))
       if (formato === 'excel') exportarExcel(datos, resumen!, periodoActual)
       else exportarCSV(datos, periodoActual)
     } finally { setExportando(false) }
@@ -147,6 +150,13 @@ export default function ReportesPage() {
               <TabsTrigger value="hoy" className="text-xs sm:text-sm">Hoy</TabsTrigger><TabsTrigger value="semana" className="text-xs sm:text-sm">Semana</TabsTrigger><TabsTrigger value="mes" className="text-xs sm:text-sm">Mes</TabsTrigger><TabsTrigger value="mes_anterior" className="text-xs sm:text-sm">Mes ant.</TabsTrigger><TabsTrigger value="personalizado" className="text-xs sm:text-sm">Personalizado</TabsTrigger>
             </TabsList>
           </Tabs>
+          <div className="w-full">
+            <SelectorRazonSocial
+              value={razonSocialId}
+              onChange={setRazonSocialId}
+              disabled={cargando}
+            />
+          </div>
           {tipoPeriodo === 'personalizado' && (
             <div className="w-full">
               <Popover>

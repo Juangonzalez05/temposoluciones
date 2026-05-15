@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { z } from 'zod'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const desde = searchParams.get('desde')
     const hasta = searchParams.get('hasta')
+    const razonSocialId = searchParams.get('razon_social_id')
 
     if (!desde || !hasta) {
       return NextResponse.json(
@@ -21,8 +23,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (razonSocialId) {
+      const parsedRazonSocialId = z.string().uuid().safeParse(razonSocialId)
+      if (!parsedRazonSocialId.success) {
+        return NextResponse.json({ error: 'UUID inválido para razon_social_id' }, { status: 400 })
+      }
+    }
+
     // ── Obtener todos los movimientos del período ─────────
-    const { data: movimientos, error } = await supabase
+    let query = supabase
       .from('movimientos')
       .select(`
         id,
@@ -44,11 +53,22 @@ export async function GET(request: NextRequest) {
           pdf_url,
           enviado_email,
           enviado_whatsapp
+        ),
+        razones_sociales (
+          id,
+          nombre,
+          nombre_corto
         )
       `)
       .gte('fecha', desde)
       .lte('fecha', hasta)
       .order('fecha', { ascending: true })
+
+    if (razonSocialId) {
+      query = query.eq('razon_social_id', razonSocialId)
+    }
+
+    const { data: movimientos, error } = await query
 
     if (error) {
       console.error('Error obteniendo reporte:', error)

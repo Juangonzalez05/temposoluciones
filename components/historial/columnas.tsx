@@ -32,6 +32,11 @@ export type MovimientoFila = {
     enviado_email: boolean
     enviado_whatsapp: boolean
   }[] | null
+  razones_sociales: {
+    id: string
+    nombre: string
+    nombre_corto: string | null
+  } | null
 }
 
 // ── Función para formatear pesos ─────────────────────────────
@@ -87,6 +92,21 @@ export const columnas: ColumnDef<MovimientoFila>[] = [
         >
           {tipo === 'ingreso' ? '↓ Ingreso' : '↑ Egreso'}
         </Badge>
+      )
+    },
+  },
+
+  // Razón Social
+  {
+    id: 'razon_social',
+    header: 'Razón Social',
+    cell: ({ row }) => {
+      const razonSocial = row.original.razones_sociales
+      const nombre = razonSocial?.nombre_corto || razonSocial?.nombre
+      return (
+        <span className="text-sm text-gray-600">
+          {nombre ?? '—'}
+        </span>
       )
     },
   },

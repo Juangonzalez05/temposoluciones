@@ -70,6 +70,7 @@ export default function HistorialPage() {
     tipo: 'todos',
     desde: '',
     hasta: '',
+    razon_social_id: undefined,
   })
 
   // ── Resumen calculado de los datos actuales ───────────────
@@ -96,6 +97,7 @@ export default function HistorialPage() {
       if (filtros.tipo !== 'todos') params.set('tipo', filtros.tipo)
       if (filtros.desde) params.set('desde', filtros.desde)
       if (filtros.hasta) params.set('hasta', filtros.hasta)
+      if (filtros.razon_social_id) params.set('razon_social_id', filtros.razon_social_id)
 
       const response = await fetch(`/api/movimientos?${params.toString()}`)
       const result = await response.json()

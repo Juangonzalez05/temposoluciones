@@ -40,9 +40,14 @@ export function SelectorRazonSocial({
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch('/api/razones-sociales', { signal: controller.signal })
+        const response = await fetch('/api/razones-sociales', {
+          signal: controller.signal,
+          credentials: 'include',
+        })
         const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'No se pudieron cargar las razones sociales')
+        if (!response.ok) {
+          throw new Error(data.error || 'No se pudieron cargar las razones sociales')
+        }
         if (!activo) return
         setRazones(Array.isArray(data) ? data : [])
       } catch (err) {
@@ -73,7 +78,7 @@ export function SelectorRazonSocial({
   if (error) {
     return (
       <Select disabled>
-        <SelectTrigger className="rounded-xl h-11">
+        <SelectTrigger className="rounded-xl h-11 border-red-300">
           <SelectValue placeholder={error} />
         </SelectTrigger>
       </Select>
@@ -103,7 +108,9 @@ export function SelectorRazonSocial({
       <SelectContent>
         {razones.map((razon) => (
           <SelectItem key={razon.id} value={razon.id}>
-            {razon.nombre_corto ? `${razon.nombre} (${razon.nombre_corto})` : razon.nombre}
+            {razon.nombre_corto
+              ? `${razon.nombre} (${razon.nombre_corto})`
+              : razon.nombre}
           </SelectItem>
         ))}
       </SelectContent>

@@ -17,7 +17,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('razones_sociales')
       .select('id, nombre, nombre_corto, nit, tipo')
-      .eq('actua', true)
+      .eq('activa', true)
       .order('nombre', { ascending: true })
 
     if (error) {

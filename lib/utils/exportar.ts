@@ -6,6 +6,7 @@ interface MovimientoExport {
   consecutivo: string
   fecha: string
   entidad: string
+  razon_social: string
   concepto: string
   valor: number
   medio_pago: string
@@ -54,6 +55,7 @@ export function exportarExcel(
     'N° RECIBO',
     'FECHA',
     'CLIENTE / BENEFICIARIO',
+    'RAZÓN SOCIAL',
     'CONCEPTO',
     'VALOR',
     'MEDIO DE PAGO',
@@ -65,6 +67,7 @@ export function exportarExcel(
     m.consecutivo,
     formatearFecha(m.fecha),
     m.entidad,
+    m.razon_social,
     m.concepto,
     m.valor,       // Número para que Excel pueda sumar
     m.medio_pago,
@@ -73,9 +76,9 @@ export function exportarExcel(
 
   const filasTotal = [
     [''],
-    ['', '', '', '', 'TOTAL INGRESOS:', resumen.totalIngresos, '', ''],
-    ['', '', '', '', 'TOTAL EGRESOS:',  resumen.totalEgresos,  '', ''],
-    ['', '', '', '', 'SALDO NETO:',     resumen.saldoNeto,     '', ''],
+    ['', '', '', '', '', 'TOTAL INGRESOS:', resumen.totalIngresos, '', ''],
+    ['', '', '', '', '', 'TOTAL EGRESOS:',  resumen.totalEgresos,  '', ''],
+    ['', '', '', '', '', 'SALDO NETO:',     resumen.saldoNeto,     '', ''],
   ]
 
   const todasLasFilas = [
@@ -93,6 +96,7 @@ export function exportarExcel(
     { wch: 16 }, // N° recibo
     { wch: 12 }, // Fecha
     { wch: 30 }, // Entidad
+    { wch: 25 }, // Razón social
     { wch: 30 }, // Concepto
     { wch: 16 }, // Valor
     { wch: 18 }, // Medio de pago
@@ -135,12 +139,13 @@ export function exportarCSV(
   nombreArchivo?: string
 ) {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['TIPO', 'N° RECIBO', 'FECHA', 'CLIENTE / BENEFICIARIO', 'CONCEPTO', 'VALOR', 'MEDIO DE PAGO', 'NOTAS'],
+    ['TIPO', 'N° RECIBO', 'FECHA', 'CLIENTE / BENEFICIARIO', 'RAZÓN SOCIAL', 'CONCEPTO', 'VALOR', 'MEDIO DE PAGO', 'NOTAS'],
     ...movimientos.map(m => [
       m.tipo.toUpperCase(),
       m.consecutivo,
       formatearFecha(m.fecha),
       m.entidad,
+      m.razon_social,
       m.concepto,
       m.valor,
       m.medio_pago,

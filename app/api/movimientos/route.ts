@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       .from('razones_sociales')
       .select('id')
       .eq('id', datos.razon_social_id)
-      .eq('actua', true)
+      .eq('activa', true)
       .maybeSingle()
 
     if (razonSocialError) {

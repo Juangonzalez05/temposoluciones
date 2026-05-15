@@ -17,12 +17,14 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { DateRange } from 'react-day-picker'
+import { SelectorRazonSocial } from '@/components/SelectorRazonSocial'
 
 export interface FiltrosHistorial {
   busqueda: string
   tipo: 'todos' | 'ingreso' | 'egreso'
   desde: string
   hasta: string
+  razon_social_id?: string
 }
 
 interface FiltrosHistorialProps {
@@ -60,11 +62,11 @@ export function FiltrosHistorialBar({
 
   function limpiarFiltros() {
     setRango(undefined)
-    onChange({ busqueda: '', tipo: 'todos', desde: '', hasta: '' })
+    onChange({ busqueda: '', tipo: 'todos', desde: '', hasta: '', razon_social_id: undefined })
   }
 
   const hayFiltrosActivos =
-    filtros.busqueda || filtros.tipo !== 'todos' || filtros.desde || filtros.hasta
+    filtros.busqueda || filtros.tipo !== 'todos' || filtros.desde || filtros.hasta || filtros.razon_social_id
 
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
@@ -96,6 +98,15 @@ export function FiltrosHistorialBar({
           <SelectItem value="egreso">↑ Egresos</SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Filtro por razón social */}
+      <div className="w-full sm:flex-1 sm:min-w-[200px]">
+        <SelectorRazonSocial
+          value={filtros.razon_social_id}
+          onChange={(v) => actualizarFiltro('razon_social_id', v || undefined)}
+          disabled={cargando}
+        />
+      </div>
 
       {/* Filtro por rango de fechas */}
       <Popover>

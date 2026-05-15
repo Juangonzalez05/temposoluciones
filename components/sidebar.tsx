@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   X,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,12 @@ const secondaryItems = [
     href: "/clientes",
     icon: Users,
     description: "Gestionar afiliados",
+  },
+  {
+    label: "Razones Sociales",
+    href: "/ajustes/razones-sociales",
+    icon: Settings,
+    description: "Configuración",
   },
 ];
 
