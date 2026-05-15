@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -50,6 +50,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import { SelectorRazonSocial } from '@/components/SelectorRazonSocial'
 
 // ── Conceptos de egreso ───────────────────────────────────────
 const CONCEPTOS_EGRESO = [
@@ -75,6 +77,10 @@ const MEDIOS_PAGO = [
 
 // ── Zod schema — v4 ──────────────────────────────────────────
 const egresoFormSchema = z.object({
+  razon_social_id: z
+    .string()
+    .uuid('Razón social inválida')
+    .min(1, 'Debes seleccionar una razón social'),
   beneficiario: z
     .string({ error: 'El beneficiario es requerido' })
     .min(2, 'El nombre debe tener al menos 2 caracteres')
@@ -229,6 +235,7 @@ export default function NuevoEgresoPage() {
   const form = useForm<EgresoFormValues>({
     resolver: zodResolver(egresoFormSchema),
     defaultValues: {
+      razon_social_id:        '',
       beneficiario:           '',
       concepto:               '',
       concepto_personalizado: '',
@@ -239,12 +246,30 @@ export default function NuevoEgresoPage() {
     },
   })
 
+  useEffect(() => {
+    const supabase = createSupabaseClient()
+
+    async function precargarRazonSocial() {
+      const { data: { user } } = await supabase.auth.getUser()
+      const razonSocialDefault = user?.user_metadata?.razon_social_id_default
+
+      if (typeof razonSocialDefault === 'string' && razonSocialDefault.length > 0) {
+        form.setValue('razon_social_id', razonSocialDefault, { shouldValidate: true })
+      }
+
+      // TODO: implementar razon_social_id_default cuando exista en perfil de usuario
+    }
+
+    precargarRazonSocial()
+  }, [form])
+
+  const watchRazonSocial = form.watch('razon_social_id')
   const watchBeneficiario = form.watch('beneficiario')
   const watchConcepto     = form.watch('concepto')
   const watchValor        = form.watch('valor')
   const watchMedioPago    = form.watch('medio_pago')
 
-  const paso1Completo = watchBeneficiario.length >= 2
+  const paso1Completo = !!watchRazonSocial && watchBeneficiario.length >= 2
   const paso2Completo = !!watchConcepto && !!watchValor && !!watchMedioPago
 
   // ── Manejo de archivo ─────────────────────────────────────
@@ -309,6 +334,7 @@ export default function NuevoEgresoPage() {
         concepto:     conceptoFinal,
         valor:        Number(values.valor.replace(/\./g, '')),
         medio_pago:   values.medio_pago,
+        razon_social_id: values.razon_social_id,
         fecha:        format(values.fecha, 'yyyy-MM-dd'),
         notas:        values.notas || null,
         soporte_url:  soporteUrl,
@@ -447,6 +473,27 @@ export default function NuevoEgresoPage() {
                 icono={Building2}
                 completado={paso1Completo}
               />
+              <FormField
+                control={form.control}
+                name="razon_social_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-gray-700">
+                      Razón social <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <SelectorRazonSocial
+                        value={field.value}
+                        onChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={enviando || subiendoArchivo}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="beneficiario"

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -52,6 +52,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
+import { SelectorRazonSocial } from '@/components/SelectorRazonSocial'
 
 // ── Conceptos predefinidos ────────────────────────────────────
 const CONCEPTOS_PREDEFINIDOS = [
@@ -77,6 +79,10 @@ const MEDIOS_PAGO = [
 
 // ── Zod schema ────────────────────────────────────────────────
 const ingresoFormSchema = z.object({
+  razon_social_id: z
+    .string()
+    .uuid('Razón social inválida')
+    .min(1, 'Debes seleccionar una razón social'),
   cliente_id:             z.string().min(1, 'Debes seleccionar un cliente'),
   concepto:               z.string().min(1, 'Selecciona un concepto'),
   concepto_personalizado: z.string().optional(),
@@ -229,6 +235,7 @@ export default function NuevoIngresoPage() {
   const form = useForm<IngresoFormValues>({
     resolver: zodResolver(ingresoFormSchema),
     defaultValues: {
+      razon_social_id:        '',
       cliente_id:             '',
       concepto:               '',
       concepto_personalizado: '',
@@ -239,14 +246,32 @@ export default function NuevoIngresoPage() {
     },
   })
 
+  useEffect(() => {
+    const supabase = createSupabaseClient()
+
+    async function precargarRazonSocial() {
+      const { data: { user } } = await supabase.auth.getUser()
+      const razonSocialDefault = user?.user_metadata?.razon_social_id_default
+
+      if (typeof razonSocialDefault === 'string' && razonSocialDefault.length > 0) {
+        form.setValue('razon_social_id', razonSocialDefault, { shouldValidate: true })
+      }
+
+      // TODO: implementar razon_social_id_default cuando exista en perfil de usuario
+    }
+
+    precargarRazonSocial()
+  }, [form])
+
   // Observar valores para feedback visual
+  const watchRazonSocial = form.watch('razon_social_id')
   const watchCliente   = form.watch('cliente_id')
   const watchConcepto  = form.watch('concepto')
   const watchValor     = form.watch('valor')
   const watchMedioPago = form.watch('medio_pago')
   const watchFecha     = form.watch('fecha')
 
-  const paso1Completo = !!watchCliente
+  const paso1Completo = !!watchRazonSocial && !!watchCliente
   const paso2Completo = !!watchConcepto && !!watchValor && !!watchMedioPago && !!watchFecha
 
   // ── Manejo de archivo ─────────────────────────────────────
@@ -310,6 +335,7 @@ export default function NuevoIngresoPage() {
         concepto:    conceptoFinal,
         valor:       Number(values.valor.replace(/\./g, '')),
         medio_pago:  values.medio_pago,
+        razon_social_id: values.razon_social_id,
         fecha:       format(values.fecha, 'yyyy-MM-dd'),
         notas:       values.notas || null,
         soporte_url: soporteUrl,
@@ -467,6 +493,27 @@ export default function NuevoIngresoPage() {
                 icono={User}
                 completado={paso1Completo}
               />
+              <FormField
+                control={form.control}
+                name="razon_social_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-gray-700">
+                      Razón social <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <SelectorRazonSocial
+                        value={field.value}
+                        onChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={enviando || subiendoArchivo}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="cliente_id"
