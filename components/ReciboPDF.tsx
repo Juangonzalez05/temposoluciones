@@ -7,16 +7,6 @@ import {
   Image,
 } from '@react-pdf/renderer'
 
-export interface RazonSocialPDF {
-  nombre: string
-  nit: string
-  telefono?: string
-  correo?: string
-  direccion?: string
-  logo_base64?: string
-  logo_formato?: string
-}
-
 export interface ReciboPDFProps {
   consecutivo: string
   fecha: string
@@ -28,7 +18,12 @@ export interface ReciboPDFProps {
   medioPago: string
   notas?: string | null
   beneficiario?: string | null
-  razonSocial: RazonSocialPDF
+  razonSocialNombre: string
+  razonSocialNit: string
+  razonSocialLogo?: string
+  razonSocialLogoFormato?: string
+  razonSocialTelefono?: string | null
+  razonSocialCorreo?: string | null
 }
 
 const COLORES = {
@@ -150,15 +145,15 @@ function formatearFecha(fecha: string): string {
   return `${parseInt(dia)} de ${meses[parseInt(mes) - 1]} de ${anio}`
 }
 
-function construirLogoDataUri(logoBase64?: string, logoFormato?: string): string | null {
-  if (!logoBase64) return null
+function construirLogoDataUri(razonSocialLogo?: string, razonSocialLogoFormato?: string): string | null {
+  if (!razonSocialLogo) return null
 
-  const formatoNormalizado = (logoFormato ?? 'png').toLowerCase().replace('image/', '')
+  const formatoNormalizado = (razonSocialLogoFormato ?? 'png').toLowerCase().replace('image/', '')
   const formatosPermitidos = new Set(['png', 'jpg', 'jpeg', 'webp'])
 
   if (!formatosPermitidos.has(formatoNormalizado)) return null
 
-  return `data:image/${formatoNormalizado};base64,${logoBase64}`
+  return `data:image/${formatoNormalizado};base64,${razonSocialLogo}`
 }
 
 export function ReciboPDF({
@@ -172,28 +167,32 @@ export function ReciboPDF({
   medioPago,
   notas,
   beneficiario,
-  razonSocial,
+  razonSocialNombre,
+  razonSocialNit,
+  razonSocialLogo,
+  razonSocialLogoFormato,
+  razonSocialTelefono,
+  razonSocialCorreo,
 }: ReciboPDFProps) {
   const esIngreso = tipo === 'ingreso'
   const colorTipo = esIngreso ? COLORES.verde : COLORES.rojo
   const labelTipo = esIngreso ? 'Recibo de Ingreso' : 'Comprobante de Egreso'
-  const logoSrc = construirLogoDataUri(razonSocial.logo_base64, razonSocial.logo_formato)
+  const logoSrc = construirLogoDataUri(razonSocialLogo, razonSocialLogoFormato)
 
   return (
-    <Document title={`${labelTipo} ${consecutivo} - ${razonSocial.nombre}`} author={razonSocial.nombre} subject={concepto}>
+    <Document title={`${labelTipo} ${consecutivo} - ${razonSocialNombre}`} author={razonSocialNombre} subject={concepto}>
       <Page size="A4" style={estilos.pagina}>
         <View style={estilos.encabezado}>
           <View style={estilos.encabezadoIzquierda}>
             {logoSrc ? (
               <Image src={logoSrc} style={estilos.logo} />
             ) : (
-              <Text style={estilos.subtituloEmpresa}>TempoSoluciones</Text>
+              <Text style={estilos.subtituloEmpresa}>{razonSocialNombre}</Text>
             )}
-            <Text style={estilos.subtituloEmpresa}>{razonSocial.nombre}</Text>
-            <Text style={estilos.infoEmpresa}>NIT: {razonSocial.nit}</Text>
-            {razonSocial.telefono ? <Text style={estilos.infoEmpresa}>Tel: {razonSocial.telefono}</Text> : null}
-            {razonSocial.correo ? <Text style={estilos.infoEmpresa}>{razonSocial.correo}</Text> : null}
-            {razonSocial.direccion ? <Text style={estilos.infoEmpresa}>{razonSocial.direccion}</Text> : null}
+            <Text style={estilos.subtituloEmpresa}>{razonSocialNombre}</Text>
+            <Text style={estilos.infoEmpresa}>NIT: {razonSocialNit}</Text>
+            {razonSocialTelefono ? <Text style={estilos.infoEmpresa}>Tel: {razonSocialTelefono}</Text> : null}
+            {razonSocialCorreo ? <Text style={estilos.infoEmpresa}>{razonSocialCorreo}</Text> : null}
           </View>
 
           <View style={estilos.encabezadoDerecha}>
@@ -249,12 +248,12 @@ export function ReciboPDF({
 
         <View style={estilos.piePagina} fixed>
           <View>
-            <Text style={estilos.pieTexto}>{razonSocial.nombre} · NIT {razonSocial.nit}</Text>
+            <Text style={estilos.pieTexto}>{razonSocialNombre} · NIT {razonSocialNit}</Text>
             <Text style={estilos.pieTexto}>Documento generado digitalmente</Text>
           </View>
           <View style={estilos.firmaBloque}>
             <View style={estilos.firmaLinea} />
-            <Text style={estilos.firmaTexto}>Firma / Sello {razonSocial.nombre}</Text>
+            <Text style={estilos.firmaTexto}>Firma / Sello {razonSocialNombre}</Text>
           </View>
         </View>
       </Page>
