@@ -7,16 +7,6 @@ import {
   Image,
 } from '@react-pdf/renderer'
 
-export interface RazonSocialPDF {
-  nombre: string
-  nit: string
-  telefono?: string
-  correo?: string
-  direccion?: string
-  logo_base64?: string
-  logo_formato?: string
-}
-
 export interface ReciboPDFProps {
   consecutivo: string
   fecha: string
@@ -32,8 +22,11 @@ export interface ReciboPDFProps {
   razonSocialNit: string
   razonSocialLogo?: string
   razonSocialLogoFormato?: string
-  razonSocialTelefono?: string
-  razonSocialCorreo?: string
+
+
+  razonSocialTelefono?: string | null
+  razonSocialCorreo?: string | null
+
 }
 
 const COLORES = {
@@ -155,15 +148,15 @@ function formatearFecha(fecha: string): string {
   return `${parseInt(dia)} de ${meses[parseInt(mes) - 1]} de ${anio}`
 }
 
-function construirLogoDataUri(logoBase64?: string, logoFormato?: string): string | null {
-  if (!logoBase64) return null
+function construirLogoDataUri(razonSocialLogo?: string, razonSocialLogoFormato?: string): string | null {
+  if (!razonSocialLogo) return null
 
-  const formatoNormalizado = (logoFormato ?? 'png').toLowerCase().replace('image/', '')
+  const formatoNormalizado = (razonSocialLogoFormato ?? 'png').toLowerCase().replace('image/', '')
   const formatosPermitidos = new Set(['png', 'jpg', 'jpeg', 'webp'])
 
   if (!formatosPermitidos.has(formatoNormalizado)) return null
 
-  return `data:image/${formatoNormalizado};base64,${logoBase64}`
+  return `data:image/${formatoNormalizado};base64,${razonSocialLogo}`
 }
 
 export function ReciboPDF({
@@ -197,7 +190,7 @@ export function ReciboPDF({
             {logoSrc ? (
               <Image src={logoSrc} style={estilos.logo} />
             ) : (
-              <Text style={estilos.subtituloEmpresa}>TempoSoluciones</Text>
+              <Text style={estilos.subtituloEmpresa}>{razonSocialNombre}</Text>
             )}
             <Text style={estilos.subtituloEmpresa}>{razonSocialNombre}</Text>
             <Text style={estilos.infoEmpresa}>NIT: {razonSocialNit}</Text>
@@ -258,12 +251,12 @@ export function ReciboPDF({
 
         <View style={estilos.piePagina} fixed>
           <View>
-            <Text style={estilos.pieTexto}>{razonSocial.nombre} · NIT {razonSocial.nit}</Text>
+            <Text style={estilos.pieTexto}>{razonSocialNombre} · NIT {razonSocialNit}</Text>
             <Text style={estilos.pieTexto}>Documento generado digitalmente</Text>
           </View>
           <View style={estilos.firmaBloque}>
             <View style={estilos.firmaLinea} />
-            <Text style={estilos.firmaTexto}>Firma / Sello {razonSocial.nombre}</Text>
+            <Text style={estilos.firmaTexto}>Firma / Sello {razonSocialNombre}</Text>
           </View>
         </View>
       </Page>
